@@ -119,9 +119,10 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 </head>
 <body>
 
-<!-- صوت نغمة البلاك بيري مخفي -->
+<!-- الصوت -->
 <audio id="bbmSound" src="https://www.soundjay.com/buttons/button-09.mp3" preload="auto"></audio>
 
+<!-- واجهات التطبيق (نفس الواجهات السابقة) -->
 <div id="welcomeScreen" class="container" style="padding-top:0; padding-left:0; padding-right:0;">
   <div class="welcome-header">
     <img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&h=400&fit=crop" alt="واجهة التطبيق">
@@ -163,7 +164,6 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
       <div class="label">زبون</div>
     </div>
     <div class="account-type" data-type="motorcycle" onclick="selectType(this)">
-      <!-- صورة الدراجة النارية المضافة -->
       <div class="veh-img"><img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&h=200&fit=crop" alt="دراجة نارية"></div>
       <div class="label">صاحب دراجة</div>
     </div>
@@ -197,7 +197,6 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     <button class="logout-btn" onclick="logout()">خروج</button>
   </div>
   <span class="role-badge" id="roleBadge">...</span>
-
   <button class="profile-btn" onclick="openMyProfile()">👤 ملفي الشخصي</button>
   <button id="mainHelpBtn" class="help-btn hidden" onclick="showHelpScreen()" style="margin-bottom: 20px;">🚨 طلب مساعدة عاجلة (للسائقين)</button>
 
@@ -215,12 +214,10 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
       <p id="availText" style="font-size:15px;color:#666;margin-bottom:12px">أنت غير متاح حالياً</p>
       <button id="toggleBtn" onclick="toggleAvailability()" style="width:auto;padding:12px 28px">تشغيل الاستقبال</button>
     </div>
-    
     <div id="sosAlerts" style="margin-top:20px">
       <h2 style="font-size:16px;color:#e74c3c">🚨 نداءات المساعدة العاجلة</h2>
       <div id="sosList"><p style="text-align:center;color:#999;font-size:13px">لا توجد نداءات حالياً</p></div>
     </div>
-
     <div id="driverInbox" style="margin-top:20px">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
         <h2 style="font-size:16px; margin:0">📥 الرسائل الواردة</h2>
@@ -243,7 +240,6 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   <div id="optionsView" class="hidden">
     <h2>اختر نوع المشوار</h2>
     <div class="vehicle-grid">
-      <!-- صورة الدراجة النارية هنا أيضاً -->
       <div class="vehicle-card" onclick="findDrivers('motorcycle')">
         <div class="veh-img"><img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&h=200&fit=crop" alt="دراجة نارية"></div>
         <div class="label">دراجة نارية</div>
@@ -276,29 +272,24 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     <h2>الملف الشخصي</h2>
     <button class="secondary-btn" style="width:auto;margin:0;padding:8px 16px" onclick="loadHome()">رجوع</button>
   </div>
-
   <div class="profile-card">
     <div class="profile-img-container" id="profileUserImg">
       <span class="icon-placeholder">👤</span>
     </div>
     <div class="profile-name" id="profileUserName">اسم المستخدم</div>
     <div class="profile-role" id="profileUserRole">زبون</div>
-
     <div id="profileVehicleSection" class="hidden vehicle-gallery">
       <p id="vehicleImgLabel">صورة المركبة:</p>
       <div class="gallery-grid" id="vehicleGalleryGrid"></div>
     </div>
   </div>
-
   <div id="editProfileSection" class="hidden">
     <h2 style="font-size:16px">إدارة الصور</h2>
     <input type="file" id="userImgInput" accept="image/*" style="display:none" onchange="handleUserImageUpload(this)">
     <button class="upload-btn" onclick="requestPermissionAndUpload('userImgInput')">📷 تعديل/إضافة صورة السائق</button>
-
     <input type="file" id="vehImgInput" accept="image/*" style="display:none" onchange="handleVehicleImageUpload(this)">
     <button class="upload-btn" onclick="requestPermissionAndUpload('vehImgInput')">🚗 إضافة صورة للمركبة</button>
   </div>
-
   <button id="chatWithDriverBtn" class="hidden" onclick="chatFromProfile()">💬 محادثة السائق</button>
 </div>
 
@@ -323,16 +314,28 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   </div>
 </div>
 
+<!-- شاشة المحادثة (مع زر الاتصال) -->
 <div id="chatScreen" class="chat-box hidden">
   <div class="chat-header">
     <span style="cursor:pointer;font-size:20px" onclick="backFromChat()">←</span>
     <h3 id="chatTitle">محادثة</h3>
-    <button onclick="loadChatMessages()" style="width:auto; background:transparent; font-size:20px; padding:0; margin:0; cursor:pointer;" title="تحديث الرسائل">🔄</button>
+    <div style="display:flex; gap:10px;">
+      <button onclick="startVoiceCall()" style="width:auto; background:transparent; font-size:20px; padding:0; margin:0; cursor:pointer;" title="اتصال صوتي">📞</button>
+      <button onclick="loadChatMessages()" style="width:auto; background:transparent; font-size:20px; padding:0; margin:0; cursor:pointer;" title="تحديث الرسائل">🔄</button>
+    </div>
   </div>
   <div class="chat-messages" id="messages"></div>
   <div class="chat-input">
     <input type="text" id="msgInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter') sendMessage()">
     <button onclick="sendMessage()">إرسال</button>
+  </div>
+</div>
+
+<!-- نافذة الاتصال الصوتي المنبثقة (Jitsi) -->
+<div id="voiceCallModal" class="editor-overlay" style="background:#fff; justify-content:center;">
+  <div style="width:100%; height:100%; position:relative;">
+    <button onclick="endVoiceCall()" style="position:absolute; top:10px; left:10px; width:auto; background:#e74c3c; z-index:10000; padding:10px 20px; border-radius:50px;">إنهاء المكالمة</button>
+    <iframe id="jitsiFrame" src="" style="width:100%; height:100%; border:none;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
   </div>
 </div>
 
@@ -360,6 +363,7 @@ let currentUser = null;
 let accountType = null;
 let chatOtherId = null;
 let chatOtherPhone = null;
+let chatOtherName = null; // نحتاجه لتمريره لغرفة الاتصال
 let chatReturnScreen = 'homeScreen';
 let chatInterval = null;
 
@@ -376,11 +380,10 @@ let startX = 0, startY = 0;
 let lastSosCount = 0;
 let lastInboxCount = 0; 
 
-// تشغيل نغمة البلاك بيري
 function playBBMSound() {
   const audio = document.getElementById('bbmSound');
   if (audio) {
-    audio.currentTime = 0; // إعادة النغمة من البداية
+    audio.currentTime = 0;
     audio.play().catch(e => console.log("المتصفح منع تشغيل الصوت التلقائي"));
   }
 }
@@ -868,7 +871,7 @@ async function loadInbox() {
     });
     
     if (newMessagesCount > lastInboxCount && lastInboxCount !== 0) {
-       playBBMSound(); // تشغيل الصوت هنا
+       playBBMSound(); 
     }
     lastInboxCount = newMessagesCount;
 
@@ -888,6 +891,7 @@ function openChat(otherUserId, otherUserName, otherUserPhone) {
   if (!currentUser) return;
   chatOtherId = otherUserId; 
   chatOtherPhone = otherUserPhone;
+  chatOtherName = otherUserName; // حفظ الاسم للاستخدام في المكالمة
   chatReturnScreen = 'homeScreen';
   document.getElementById('chatTitle').textContent = otherUserName;
   show('chatScreen');
@@ -928,7 +932,7 @@ function loadChatMessages() {
       });
       
       if (newMsgs > currentMsgCount && currentMsgCount !== 0) {
-         playBBMSound(); // تشغيل الصوت داخل المحادثة
+         playBBMSound(); 
       }
 
       if (!hasMessages) { 
@@ -953,6 +957,29 @@ async function sendMessage() {
   });
   
   loadChatMessages();
+}
+
+// **دالة الاتصال الصوتي المدمجة (WebRTC عبر Jitsi داخل التطبيق)**
+function startVoiceCall() {
+  if (!currentUser || !chatOtherId) return;
+  
+  // إنشاء اسم غرفة فريد وثابت بين الطرفين
+  const roomName = currentUser.phone < chatOtherPhone 
+    ? `MashawirCall_${currentUser.phone}_${chatOtherPhone}` 
+    : `MashawirCall_${chatOtherPhone}_${currentUser.phone}`;
+    
+  // رابط Jitsi Meet مع إخفاء الفيديو وتشغيل الصوت فقط
+  const callUrl = `https://meet.jit.si/${roomName}#config.startWithVideoMuted=true&config.startWithAudioMuted=false`;
+  
+  // فتح الشاشة المنبثقة داخل التطبيق
+  document.getElementById('jitsiFrame').src = callUrl;
+  document.getElementById('voiceCallModal').classList.remove('hidden');
+}
+
+function endVoiceCall() {
+  // إغلاق المكالمة وتفريغ الرابط لإيقاف الصوت
+  document.getElementById('jitsiFrame').src = "";
+  document.getElementById('voiceCallModal').classList.add('hidden');
 }
 
 function backFromChat() { 
