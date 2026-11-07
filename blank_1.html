@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>اطلب مشوارك</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; touch-action: manipulation; }
+body { background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); min-height: 100vh; direction: rtl; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 16px; overflow-x: hidden; }
+.container { background: #fff; border-radius: 20px; padding: 30px 24px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin: 20px 0; position: relative; overflow: hidden; }
+.welcome-header { position: relative; height: 260px; margin: -30px -24px 20px -24px; overflow: hidden; border-radius: 20px 20px 0 0; }
+.welcome-header img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.welcome-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.1) 50%, rgba(0,0,0,0.5) 100%); }
+.welcome-title { position: absolute; bottom: 20px; right: 24px; left: 24px; text-align: center; }
+.welcome-title h1 { font-size: 32px; color: #ff6b35; margin-bottom: 6px; font-weight: 800; text-shadow: 0 2px 4px rgba(255,255,255,0.8); }
+.welcome-title p { color: #fff; font-size: 15px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+.logo { text-align: center; font-size: 60px; margin-bottom: 8px; }
+h1 { text-align: center; color: #333; font-size: 26px; margin-bottom: 6px; }
+.subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 24px; }
+h2 { color: #333; font-size: 20px; margin-bottom: 16px; text-align: center; }
+input, textarea { width: 100%; padding: 14px; margin-bottom: 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; text-align: right; background: #fafafa; font-family: inherit; }
+input:focus, textarea:focus { outline: none; border-color: #ff6b35; background: #fff; }
+button { width: 100%; padding: 14px; background: linear-gradient(135deg, #ff6b35, #f7931e); color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 10px; transition: transform 0.1s; }
+button:hover { transform: scale(1.02); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+.secondary-btn { background: #f0f0f0; color: #333; }
+.outline-btn { background: #fff; color: #ff6b35; border: 2px solid #ff6b35; }
+.help-btn { background: linear-gradient(135deg, #e74c3c, #c0392b); font-size: 18px; padding: 16px; }
+.profile-btn { background: linear-gradient(135deg, #3498db, #2980b9); font-size: 16px; padding: 14px; }
+.error { color: #e74c3c; font-size: 14px; margin-bottom: 10px; text-align: center; background: #ffeaea; padding: 10px; border-radius: 8px; display: none; }
+.success { color: #27ae60; font-size: 14px; margin-bottom: 10px; text-align: center; background: #e8f8f5; padding: 10px; border-radius: 8px; display: none; }
+.auth-buttons { margin-top: 20px; }
+.account-types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+.account-type { border: 3px solid #e0e0e0; border-radius: 14px; overflow: hidden; cursor: pointer; transition: all 0.2s; background: #fff; position: relative; }
+.account-type.selected { border-color: #ff6b35; box-shadow: 0 6px 20px rgba(255,107,53,0.3); }
+.account-type.selected::after { content: '✓'; position: absolute; top: 6px; left: 6px; background: #ff6b35; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; }
+.account-type .veh-img { width: 100%; height: 90px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.account-type .veh-img img { width: 100%; height: 100%; object-fit: cover; }
+.account-type .veh-img .emoji-fallback { font-size: 50px; }
+.account-type .label { padding: 10px 6px; text-align: center; font-size: 13px; font-weight: 700; color: #333; background: #fff; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.header h2 { margin: 0; text-align: right; font-size: 18px; }
+.logout-btn { background: #e74c3c; width: auto; padding: 8px 16px; font-size: 14px; margin: 0; }
+.role-badge { display: inline-block; background: #fff3eb; color: #ff6b35; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+.options-btn { background: linear-gradient(135deg, #ff6b35, #f7931e); font-size: 20px; padding: 20px; margin: 20px 0; }
+.vehicle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+.vehicle-card { background: #fff; border: 2px solid #e0e0e0; border-radius: 14px; overflow: hidden; cursor: pointer; transition: all 0.2s; }
+.vehicle-card:hover { border-color: #ff6b35; transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,107,53,0.2); }
+.vehicle-card .veh-img { width: 100%; height: 100px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.vehicle-card .veh-img img { width: 100%; height: 100%; object-fit: cover; }
+.vehicle-card .veh-img .emoji-fallback { font-size: 55px; }
+.vehicle-card .label { padding: 10px; text-align: center; font-size: 14px; font-weight: 700; color: #333; background: #fafafa; }
+.driver-card { background: #f8f9fa; border-radius: 12px; padding: 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid #ff6b35; cursor: pointer; transition: 0.2s; }
+.driver-card:hover { background: #fff3eb; }
+.driver-card .info h4 { color: #333; font-size: 16px; margin-bottom: 4px; }
+.driver-card .info p { color: #777; font-size: 13px; }
+.driver-card button { width: auto; padding: 10px 16px; font-size: 14px; margin: 0; }
+.profile-card { background: #f8f9fa; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 2px solid #eee; position: relative; }
+.profile-img-container { width: 120px; height: 120px; margin: 0 auto 15px auto; border-radius: 50%; overflow: hidden; border: 4px solid #ff6b35; background: #ddd; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+.profile-img-container img { width: 100%; height: 100%; object-fit: cover; }
+.profile-img-container .icon-placeholder { font-size: 60px; }
+.profile-name { font-size: 22px; font-weight: bold; color: #333; margin-bottom: 5px; }
+.profile-role { font-size: 14px; color: #ff6b35; font-weight: 600; background: #fff3eb; display: inline-block; padding: 4px 12px; border-radius: 20px; margin-bottom: 15px; }
+.vehicle-gallery { margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
+.vehicle-gallery p { text-align: right; font-weight: bold; color: #555; margin-bottom: 8px; }
+.gallery-grid { display: flex; flex-direction: column; gap: 10px; }
+.gallery-item { position: relative; width: 100%; height: 200px; border-radius: 12px; overflow: hidden; border: 2px solid #ddd; cursor: pointer; background: #eee; display: flex; align-items: center; justify-content: center; }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-item .icon-placeholder { font-size: 60px; }
+.gallery-item.active { border-color: #ff6b35; box-shadow: 0 0 15px rgba(255,107,53,0.4); }
+.gallery-item .active-badge { position: absolute; bottom: 8px; right: 8px; left: 8px; background: rgba(255,107,53,0.95); color: #fff; font-size: 12px; padding: 4px 0; border-radius: 6px; font-weight: bold; text-align: center; }
+.editor-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #111; z-index: 9999; display: none; flex-direction: column; }
+.editor-overlay.active { display: flex; }
+.editor-header { background: #222; color: #fff; padding: 15px; display: flex; justify-content: center; align-items: center; }
+.editor-header h3 { margin: 0; font-size: 18px; }
+.editor-canvas-container { flex: 1; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+.editor-img { max-width: 100%; max-height: 100%; transition: transform 0.1s ease-out; transform-origin: center center; user-select: none; -webkit-user-drag: none; }
+.editor-controls { background: #222; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.zoom-controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; }
+.zoom-btn { background: #444; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; margin: 0; color: #fff; }
+.action-controls { display: flex; gap: 10px; }
+.action-controls button { margin: 0; flex: 1; padding: 15px; }
+.btn-approve { background: #27ae60; }
+.btn-cancel { background: #e74c3c; }
+.btn-main { background: #f39c12; margin-bottom: 10px; }
+.btn-delete { background: #c0392b; margin-bottom: 10px; }
+.sos-card { background: #fff3eb; border-radius: 12px; padding: 14px; margin-bottom: 12px; border-right: 4px solid #e74c3c; animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); } 70% { box-shadow: 0 0 0 10px rgba(231,76,60,0); } 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); } }
+.sos-card .info h4 { color: #e74c3c; font-size: 15px; margin-bottom: 4px; }
+.sos-card .info p { color: #333; font-size: 14px; margin-bottom: 8px; font-weight: 600; }
+.sos-card .btn-group { display: flex; gap: 8px; }
+.sos-card button { width: auto; padding: 8px 14px; font-size: 13px; margin: 0; flex: 1; }
+.btn-reply { background: #e74c3c; }
+.btn-resolve { background: #27ae60; }
+.spinner { border: 4px solid #f3f3f3; border-top: 4px solid #ff6b35; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hidden { display: none !important; }
+.step-label { color: #666; font-size: 13px; margin-bottom: 6px; display: block; font-weight: 600; }
+.link-text { color: #ff6b35; cursor: pointer; text-decoration: underline; font-weight: 600; text-align: center; display: block; margin-top: 10px; font-size: 14px; }
+.upload-btn { background: #f0f0f0; color: #333; padding: 10px; font-size: 14px; border: 2px dashed #ccc; margin-bottom: 15px; }
+.developer-signature { text-align: center; color: #fff; font-size: 14px; margin: 10px 0 30px 0; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; }
+.developer-signature span { background: rgba(0,0,0,0.2); padding: 6px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3); }
+.chat-box { background: #fff; border-radius: 20px; width: 100%; max-width: 520px; height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin: 20px 0; }
+.chat-header { padding: 16px; background: linear-gradient(135deg, #ff6b35, #f7931e); color: #fff; display: flex; align-items: center; justify-content: space-between; }
+.chat-header h3 { margin: 0; font-size: 18px; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 16px; background: #f5f5f5; }
+.message { max-width: 75%; padding: 10px 14px; border-radius: 14px; margin-bottom: 8px; word-wrap: break-word; font-size: 15px; }
+.message.mine { background: #ff6b35; color: #fff; margin-right: auto; margin-left: 0; border-bottom-right-radius: 4px; }
+.message.theirs { background: #fff; color: #333; margin-left: auto; margin-right: 0; border-bottom-left-radius: 4px; }
+.chat-input { display: flex; padding: 10px; gap: 8px; background: #fff; border-top: 1px solid #eee; }
+.chat-input input { margin: 0; flex: 1; }
+.chat-input button { width: auto; padding: 0 20px; margin: 0; }
+</style>
+</head>
+<body>
+
+<!-- صوت نغمة البلاك بيري مخفي -->
+<audio id="bbmSound" src="https://www.soundjay.com/buttons/button-09.mp3" preload="auto"></audio>
+
+<div id="welcomeScreen" class="container" style="padding-top:0; padding-left:0; padding-right:0;">
+  <div class="welcome-header">
+    <img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&h=400&fit=crop" alt="واجهة التطبيق">
+    <div class="welcome-overlay"></div>
+    <div class="welcome-title">
+      <h1>اطلب مشوارك</h1>
+      <p>مشوارك في مكان واحد - سريع وآمن</p>
+    </div>
+  </div>
+  <div style="padding: 0 24px 24px 24px">
+    <div class="auth-buttons">
+      <button onclick="show('loginScreen')">🔑 تسجيل الدخول</button>
+      <button class="outline-btn" onclick="show('registerScreen')">✨ إنشاء حساب جديد</button>
+    </div>
+  </div>
+</div>
+
+<div id="loginScreen" class="container hidden">
+  <div style="text-align:center;font-size:50px;margin-bottom:8px">🛵</div>
+  <h1>تسجيل الدخول</h1>
+  <p class="subtitle">أدخل رقمك وكلمة المرور</p>
+  <label class="step-label">رقم الجوال</label>
+  <input type="tel" id="loginPhone" placeholder="7XXXXXXXX" maxlength="9" inputmode="numeric">
+  <label class="step-label">كلمة المرور</label>
+  <input type="password" id="loginPassword" placeholder="كلمة المرور">
+  <button onclick="login()" id="loginBtn">دخول</button>
+  <p class="error" id="loginErr"></p>
+  <span class="link-text" onclick="show('registerScreen')">ليس لديك حساب؟ سجّل الآن</span>
+  <span class="link-text" onclick="show('welcomeScreen')">← رجوع</span>
+</div>
+
+<div id="registerScreen" class="container hidden">
+  <h1>إنشاء حساب</h1>
+  <p class="subtitle">اختر نوع حسابك وأكمل بياناتك</p>
+  <h2 style="font-size:16px;margin-bottom:10px">اختر نوع حسابك</h2>
+  <div class="account-types" id="accountTypes">
+    <div class="account-type" data-type="passenger" onclick="selectType(this)">
+      <div class="veh-img"><span class="emoji-fallback">👤</span></div>
+      <div class="label">زبون</div>
+    </div>
+    <div class="account-type" data-type="motorcycle" onclick="selectType(this)">
+      <!-- صورة الدراجة النارية المضافة -->
+      <div class="veh-img"><img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&h=200&fit=crop" alt="دراجة نارية"></div>
+      <div class="label">صاحب دراجة</div>
+    </div>
+    <div class="account-type" data-type="bus" onclick="selectType(this)">
+      <div class="veh-img"><img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&h=200&fit=crop" alt="باص دايو"></div>
+      <div class="label">باص دايو</div>
+    </div>
+    <div class="account-type" data-type="truck" onclick="selectType(this)">
+      <div class="veh-img"><span class="emoji-fallback">🚚</span></div>
+      <div class="label">دينه نقل بضائع او عفش</div>
+    </div>
+  </div>
+  <label class="step-label">الاسم الكامل</label>
+  <input type="text" id="regName" placeholder="اسمك الكامل">
+  <label class="step-label">رقم الجوال</label>
+  <input type="tel" id="regPhone" placeholder="7XXXXXXXX" maxlength="9" inputmode="numeric">
+  <label class="step-label">كلمة المرور</label>
+  <input type="password" id="regPassword" placeholder="كلمة المرور">
+  <label class="step-label">تأكيد كلمة المرور</label>
+  <input type="password" id="regConfirm" placeholder="تأكيد كلمة المرور">
+  <button onclick="register()" id="regBtn">إنشاء الحساب</button>
+  <p class="error" id="regErr"></p>
+  <p class="success" id="regOk"></p>
+  <span class="link-text" onclick="show('loginScreen')">لديك حساب؟ سجّل الدخول</span>
+  <span class="link-text" onclick="show('welcomeScreen')">← رجوع</span>
+</div>
+
+<div id="homeScreen" class="container hidden">
+  <div class="header">
+    <h2 id="welcome">أهلاً 👋</h2>
+    <button class="logout-btn" onclick="logout()">خروج</button>
+  </div>
+  <span class="role-badge" id="roleBadge">...</span>
+
+  <button class="profile-btn" onclick="openMyProfile()">👤 ملفي الشخصي</button>
+  <button id="mainHelpBtn" class="help-btn hidden" onclick="showHelpScreen()" style="margin-bottom: 20px;">🚨 طلب مساعدة عاجلة (للسائقين)</button>
+
+  <div id="passengerView" class="hidden">
+    <button class="options-btn" onclick="showOptions()">🛵 اطلب مشوارك الآن</button>
+    <div id="driverOnlineInfo" style="margin-top:20px">
+      <h2 style="font-size:16px">السائقون المتاحون الآن</h2>
+      <div id="onlineDriversList"><p style="text-align:center;color:#999;font-size:13px">جاري البحث...</p></div>
+    </div>
+  </div>
+
+  <div id="driverView" class="hidden">
+    <h2 style="font-size:17px">حالة الاستقبال</h2>
+    <div style="text-align:center;padding:20px;background:#f8f9fa;border-radius:14px;margin-bottom:16px">
+      <p id="availText" style="font-size:15px;color:#666;margin-bottom:12px">أنت غير متاح حالياً</p>
+      <button id="toggleBtn" onclick="toggleAvailability()" style="width:auto;padding:12px 28px">تشغيل الاستقبال</button>
+    </div>
+    
+    <div id="sosAlerts" style="margin-top:20px">
+      <h2 style="font-size:16px;color:#e74c3c">🚨 نداءات المساعدة العاجلة</h2>
+      <div id="sosList"><p style="text-align:center;color:#999;font-size:13px">لا توجد نداءات حالياً</p></div>
+    </div>
+
+    <div id="driverInbox" style="margin-top:20px">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+        <h2 style="font-size:16px; margin:0">📥 الرسائل الواردة</h2>
+        <button onclick="loadInbox()" style="width:auto; padding:5px 10px; font-size:14px; margin:0; background:#3498db;">🔄 تحديث</button>
+      </div>
+      <div id="inboxList"><p style="text-align:center;color:#999;font-size:13px">لا توجد رسائل</p></div>
+    </div>
+  </div>
+
+  <div id="helpView" class="hidden">
+    <h2 style="color:#e74c3c">🚨 طلب مساعدة عاجلة</h2>
+    <p class="subtitle" style="font-size:13px;color:#666;margin-bottom:20px">سيتم إرسال هذه الرسالة لجميع السائقين المتاحين</p>
+    <label class="step-label">اكتب حالتك أو طلبك هنا:</label>
+    <textarea id="helpMessage" rows="4" placeholder="مثال: أنا معطل في شارع الوزير، أريد بنزين..."></textarea>
+    <button onclick="sendHelpRequest()" style="background:linear-gradient(135deg,#e74c3c,#c0392b)">إرسال النداء للجميع</button>
+    <button class="secondary-btn" onclick="loadHome()">رجوع</button>
+    <p class="success" id="helpOk"></p>
+  </div>
+
+  <div id="optionsView" class="hidden">
+    <h2>اختر نوع المشوار</h2>
+    <div class="vehicle-grid">
+      <!-- صورة الدراجة النارية هنا أيضاً -->
+      <div class="vehicle-card" onclick="findDrivers('motorcycle')">
+        <div class="veh-img"><img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&h=200&fit=crop" alt="دراجة نارية"></div>
+        <div class="label">دراجة نارية</div>
+      </div>
+      <div class="vehicle-card" onclick="findDrivers('bus')">
+        <div class="veh-img"><img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&h=200&fit=crop" alt="باص دايو"></div>
+        <div class="label">باص دايو</div>
+      </div>
+      <div class="vehicle-card" onclick="findDrivers('truck')">
+        <div class="veh-img"><span class="emoji-fallback">🚚</span></div>
+        <div class="label">دينه نقل بضائع او عفش</div>
+      </div>
+      <div class="vehicle-card" onclick="findDrivers('trailer')">
+        <div class="veh-img"><span class="emoji-fallback">🚛</span></div>
+        <div class="label">قاطرة</div>
+      </div>
+    </div>
+    <button class="secondary-btn" style="margin-top:20px" onclick="backHome()">رجوع</button>
+  </div>
+
+  <div id="resultsView" class="hidden">
+    <h2>السائقون المتاحون</h2>
+    <div id="driversList"></div>
+    <button class="secondary-btn" style="margin-top:20px" onclick="backHome()">رجوع</button>
+  </div>
+</div>
+
+<div id="profileView" class="container hidden">
+  <div class="header">
+    <h2>الملف الشخصي</h2>
+    <button class="secondary-btn" style="width:auto;margin:0;padding:8px 16px" onclick="loadHome()">رجوع</button>
+  </div>
+
+  <div class="profile-card">
+    <div class="profile-img-container" id="profileUserImg">
+      <span class="icon-placeholder">👤</span>
+    </div>
+    <div class="profile-name" id="profileUserName">اسم المستخدم</div>
+    <div class="profile-role" id="profileUserRole">زبون</div>
+
+    <div id="profileVehicleSection" class="hidden vehicle-gallery">
+      <p id="vehicleImgLabel">صورة المركبة:</p>
+      <div class="gallery-grid" id="vehicleGalleryGrid"></div>
+    </div>
+  </div>
+
+  <div id="editProfileSection" class="hidden">
+    <h2 style="font-size:16px">إدارة الصور</h2>
+    <input type="file" id="userImgInput" accept="image/*" style="display:none" onchange="handleUserImageUpload(this)">
+    <button class="upload-btn" onclick="requestPermissionAndUpload('userImgInput')">📷 تعديل/إضافة صورة السائق</button>
+
+    <input type="file" id="vehImgInput" accept="image/*" style="display:none" onchange="handleVehicleImageUpload(this)">
+    <button class="upload-btn" onclick="requestPermissionAndUpload('vehImgInput')">🚗 إضافة صورة للمركبة</button>
+  </div>
+
+  <button id="chatWithDriverBtn" class="hidden" onclick="chatFromProfile()">💬 محادثة السائق</button>
+</div>
+
+<div id="imageEditor" class="editor-overlay">
+  <div class="editor-header">
+    <h3 id="editorTitle">تعديل الصورة</h3>
+  </div>
+  <div class="editor-canvas-container" id="editorCanvas">
+    <img id="editorImage" class="editor-img" src="" alt="تعديل">
+  </div>
+  <div class="editor-controls">
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomOut()">-</button>
+      <button class="zoom-btn" onclick="zoomIn()">+</button>
+    </div>
+    <button id="btnSetMain" class="btn-main hidden" onclick="setMainAndClose()">⭐ تعيين كصورة رئيسية</button>
+    <button id="btnDelete" class="btn-delete hidden" onclick="deleteFromEditor()">🗑️ حذف هذه الصورة</button>
+    <div class="action-controls">
+      <button class="btn-cancel" onclick="closeEditor()">إلغاء</button>
+      <button id="btnSave" class="btn-approve hidden" onclick="saveEditedImage()">موافق (حفظ)</button>
+    </div>
+  </div>
+</div>
+
+<div id="chatScreen" class="chat-box hidden">
+  <div class="chat-header">
+    <span style="cursor:pointer;font-size:20px" onclick="backFromChat()">←</span>
+    <h3 id="chatTitle">محادثة</h3>
+    <button onclick="loadChatMessages()" style="width:auto; background:transparent; font-size:20px; padding:0; margin:0; cursor:pointer;" title="تحديث الرسائل">🔄</button>
+  </div>
+  <div class="chat-messages" id="messages"></div>
+  <div class="chat-input">
+    <input type="text" id="msgInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter') sendMessage()">
+    <button onclick="sendMessage()">إرسال</button>
+  </div>
+</div>
+
+<div class="developer-signature">
+  <span>تطوير المطور: حيدر فارع</span>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyATKbzgCK7eM6Q_u3pt6PRw6CG_ZcwW3p8",
+  authDomain: "atlobmashwarak.firebaseapp.com",
+  databaseURL: "https://atlobmashwarak-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "atlobmashwarak",
+  storageBucket: "atlobmashwarak.firebasestorage.app",
+  messagingSenderId: "1008639693535",
+  appId: "1:1008639693535:web:5b9ed910c6ef69cad38f6a",
+  measurementId: "G-JQEKGM0XWQ"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let currentUser = null;
+let accountType = null;
+let chatOtherId = null;
+let chatOtherPhone = null;
+let chatReturnScreen = 'homeScreen';
+let chatInterval = null;
+
+let viewingUserId = null;
+let isViewingMyProfile = false;
+let editingImageIndex = -1; 
+let currentEditingType = ''; 
+
+let imgScale = 1;
+let imgX = 0;
+let imgY = 0;
+let isDragging = false;
+let startX = 0, startY = 0;
+let lastSosCount = 0;
+let lastInboxCount = 0; 
+
+// تشغيل نغمة البلاك بيري
+function playBBMSound() {
+  const audio = document.getElementById('bbmSound');
+  if (audio) {
+    audio.currentTime = 0; // إعادة النغمة من البداية
+    audio.play().catch(e => console.log("المتصفح منع تشغيل الصوت التلقائي"));
+  }
+}
+
+function show(screenId) {
+  ['welcomeScreen','loginScreen','registerScreen','homeScreen','profileView','chatScreen']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.getElementById(screenId).classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError(id) {
+  const el = document.getElementById(id);
+  if(el) el.style.display = 'none';
+}
+
+function selectType(el) {
+  document.querySelectorAll('.account-type').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+  accountType = el.dataset.type;
+}
+
+async function register() {
+  const name = document.getElementById('regName').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const pwd = document.getElementById('regPassword').value;
+  const cpwd = document.getElementById('regConfirm').value;
+  hideError('regErr');
+
+  if (!accountType) return showError('regErr', 'اختر نوع الحساب');
+  if (name.length < 3) return showError('regErr', 'أدخل اسمك الكامل');
+  if (!/^7\d{8}$/.test(phone)) return showError('regErr', 'رقم جوال غير صحيح');
+  if (pwd.length < 6) return showError('regErr', 'كلمة المرور 6 أحرف على الأقل');
+  if (pwd !== cpwd) return showError('regErr', 'كلمتا المرور غير متطابقتين');
+
+  document.getElementById('regBtn').disabled = true;
+  document.getElementById('regBtn').textContent = 'جاري التسجيل...';
+
+  try {
+    const dummyEmail = `${phone}@mashawir.app`;
+    const userCredential = await auth.createUserWithEmailAndPassword(dummyEmail, pwd);
+    const uid = userCredential.user.uid;
+
+    const newUser = {
+      id: uid, name: name, phone: phone, accountType: accountType,
+      isDriver: accountType !== 'passenger', isAvailable: false,
+      userImg: '', vehicleImages: [], mainVehicleImgIndex: 0,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    await db.collection("users").doc(uid).set(newUser);
+    
+    currentUser = newUser;
+    document.getElementById('regOk').textContent = '✅ تم إنشاء الحساب بنجاح!';
+    document.getElementById('regOk').style.display = 'block';
+    setTimeout(() => loadHome(), 1000);
+  } catch (e) {
+    if (auth.currentUser) await auth.currentUser.delete();
+    showError('regErr', 'خطأ: ' + e.message);
+    document.getElementById('regBtn').disabled = false;
+    document.getElementById('regBtn').textContent = 'إنشاء الحساب';
+  }
+}
+
+async function login() {
+  const phone = document.getElementById('loginPhone').value.trim();
+  const pwd = document.getElementById('loginPassword').value;
+  hideError('loginErr');
+
+  if (!/^7\d{8}$/.test(phone)) return showError('loginErr', 'أدخل رقم جوال صحيح');
+  if (!pwd) return showError('loginErr', 'أدخل كلمة المرور');
+
+  document.getElementById('loginBtn').disabled = true;
+  document.getElementById('loginBtn').textContent = 'جاري الدخول...';
+
+  try {
+    await auth.signOut(); 
+    const dummyEmail = `${phone}@mashawir.app`;
+    const userCredential = await auth.signInWithEmailAndPassword(dummyEmail, pwd);
+    const uid = userCredential.user.uid;
+    
+    const doc = await db.collection("users").doc(uid).get();
+    if (!doc.exists) throw new Error("بيانات المستخدم غير موجودة");
+    
+    currentUser = doc.data();
+    loadHome();
+    
+    document.getElementById('loginBtn').disabled = false;
+    document.getElementById('loginBtn').textContent = 'دخول';
+  } catch (e) {
+    showError('loginErr', 'خطأ: ' + e.message);
+    document.getElementById('loginBtn').disabled = false;
+    document.getElementById('loginBtn').textContent = 'دخول';
+  }
+}
+
+function logout() {
+  auth.signOut().then(() => {
+    currentUser = null;
+    if (chatInterval) clearInterval(chatInterval);
+    document.getElementById('loginPhone').value = '';
+    document.getElementById('loginPassword').value = '';
+    hideError('loginErr');
+    document.getElementById('loginBtn').disabled = false;
+    document.getElementById('loginBtn').textContent = 'دخول';
+    show('welcomeScreen');
+  });
+}
+
+function loadHome() {
+  if (!currentUser) return show('welcomeScreen');
+  
+  document.getElementById('welcome').textContent = 'أهلاً ' + currentUser.name + ' 👋';
+  const labels = { passenger: '👤 زبون', motorcycle: '🏍️ دراجة', bus: '🚌 باص دايو', truck: '🚚 دينه نقل بضائع او عفش', trailer: '🚛 قاطرة' };
+  document.getElementById('roleBadge').textContent = labels[currentUser.accountType] || 'زبون';
+  
+  document.getElementById('passengerView').classList.add('hidden');
+  document.getElementById('driverView').classList.add('hidden');
+  document.getElementById('helpView').classList.add('hidden');
+  document.getElementById('optionsView').classList.add('hidden');
+  document.getElementById('resultsView').classList.add('hidden');
+  
+  const helpBtn = document.getElementById('mainHelpBtn');
+  if (currentUser.accountType === 'passenger') helpBtn.classList.add('hidden'); else helpBtn.classList.remove('hidden');
+  
+  if (currentUser.accountType === 'passenger') { 
+    document.getElementById('passengerView').classList.remove('hidden'); 
+    showOnlineDriversOnHome(); 
+  } else { 
+    document.getElementById('driverView').classList.remove('hidden'); 
+    updateAvailabilityUI(currentUser.isAvailable); 
+    loadInbox(); 
+    loadSOSAlerts(); 
+  }
+  show('homeScreen');
+}
+
+function showOptions() { document.getElementById('passengerView').classList.add('hidden'); document.getElementById('optionsView').classList.remove('hidden'); }
+function backHome() { document.getElementById('passengerView').classList.remove('hidden'); document.getElementById('optionsView').classList.add('hidden'); document.getElementById('resultsView').classList.add('hidden'); loadHome(); }
+
+async function openMyProfile() {
+  isViewingMyProfile = true; viewingUserId = currentUser.id;
+  const doc = await db.collection("users").doc(currentUser.id).get();
+  currentUser = doc.data();
+  loadProfileData(currentUser);
+}
+
+async function openDriverProfile(driverId) {
+  isViewingMyProfile = false; viewingUserId = driverId;
+  const doc = await db.collection("users").doc(driverId).get();
+  if (doc.exists) loadProfileData(doc.data());
+}
+
+function loadProfileData(user) {
+  document.getElementById('profileUserName').textContent = user.name;
+  const labels = { passenger: 'زبون', motorcycle: 'صاحب دراجة', bus: 'باص دايو', truck: 'دينه نقل بضائع او عفش', trailer: 'قاطرة' };
+  document.getElementById('profileUserRole').textContent = labels[user.accountType] || 'زبون';
+  
+  const vehNames = { motorcycle: 'صورة الدراجة', bus: 'صورة الباص', truck: 'صورة الدينه', trailer: 'صورة القاطرة' };
+  document.getElementById('vehicleImgLabel').textContent = (vehNames[user.accountType] || 'صورة المركبة') + ':';
+
+  const userImgDiv = document.getElementById('profileUserImg');
+  if (user.userImg) {
+    userImgDiv.innerHTML = `<img src="${user.userImg}" onclick="openEditor('${user.userImg}', -1, 'user')">`;
+  } else { userImgDiv.innerHTML = `<span class="icon-placeholder">👤</span>`; }
+
+  const vehSection = document.getElementById('profileVehicleSection');
+  const galleryGrid = document.getElementById('vehicleGalleryGrid');
+  if (user.isDriver) {
+    vehSection.classList.remove('hidden'); galleryGrid.innerHTML = '';
+    let images = user.vehicleImages || [];
+    if (images.length === 0) {
+      let icon = '🚗'; if (user.accountType === 'motorcycle') icon = '🏍️'; if (user.accountType === 'bus') icon = '🚌'; if (user.accountType === 'truck') icon = '🚚';
+      galleryGrid.innerHTML = `<div class="gallery-item"><span class="icon-placeholder">${icon}</span></div>`;
+    } else {
+      images.forEach((imgBase64, index) => {
+        const isMain = (index === (user.mainVehicleImgIndex || 0));
+        const item = document.createElement('div'); item.className = `gallery-item ${isMain ? 'active' : ''}`;
+        item.innerHTML = `<img src="${imgBase64}" onclick="openEditor('${imgBase64}', ${index}, 'vehicle')">${isMain ? '<span class="active-badge">رئيسية</span>' : ''}`;
+        galleryGrid.appendChild(item);
+      });
+    }
+  } else { vehSection.classList.add('hidden'); }
+
+  const editSection = document.getElementById('editProfileSection');
+  if (isViewingMyProfile && currentUser.isDriver) editSection.classList.remove('hidden'); else editSection.classList.add('hidden');
+  
+  const chatBtn = document.getElementById('chatWithDriverBtn');
+  if (!isViewingMyProfile && currentUser.accountType === 'passenger') chatBtn.classList.remove('hidden'); else chatBtn.classList.add('hidden');
+  
+  show('profileView');
+}
+
+function requestPermissionAndUpload(inputId) {
+  if (confirm("سيقوم التطبيق بالوصول إلى معرض الصور الخاص بك. هل تسمح بذلك؟")) {
+    document.getElementById(inputId).click();
+  }
+}
+function handleUserImageUpload(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { openEditor(e.target.result, -1, 'user'); }; reader.readAsDataURL(input.files[0]); }
+function handleVehicleImageUpload(input) { if (!input.files[0]) return; const reader = new FileReader(); reader.onload = function(e) { openEditor(e.target.result, -2, 'vehicle'); }; reader.readAsDataURL(input.files[0]); }
+
+function openEditor(imgSrc, index, type) {
+  editingImageIndex = index; currentEditingType = type;
+  document.getElementById('editorImage').src = imgSrc;
+  imgScale = 1; imgX = 0; imgY = 0; updateImageTransform();
+  
+  if (isViewingMyProfile) {
+    document.getElementById('editorTitle').textContent = "تعديل الصورة";
+    document.getElementById('btnSetMain').classList.toggle('hidden', !(type === 'vehicle' && index >= 0 && index !== currentUser.mainVehicleImgIndex));
+    document.getElementById('btnDelete').classList.toggle('hidden', !(index >= 0 || (type === 'user' && currentUser.userImg)));
+    document.getElementById('btnSave').classList.remove('hidden');
+    document.querySelector('.btn-cancel').textContent = 'إلغاء';
+  } else {
+    document.getElementById('editorTitle').textContent = "عرض الصورة";
+    document.getElementById('btnSetMain').classList.add('hidden');
+    document.getElementById('btnDelete').classList.add('hidden');
+    document.getElementById('btnSave').classList.add('hidden');
+    document.querySelector('.btn-cancel').textContent = 'إغلاق';
+  }
+  document.getElementById('imageEditor').classList.add('active');
+}
+
+function closeEditor() { document.getElementById('imageEditor').classList.remove('active'); editingImageIndex = -1; }
+function updateImageTransform() { document.getElementById('editorImage').style.transform = `translate(${imgX}px, ${imgY}px) scale(${imgScale})`; }
+function zoomIn() { imgScale += 0.2; updateImageTransform(); }
+function zoomOut() { if (imgScale > 0.4) imgScale -= 0.2; updateImageTransform(); }
+
+const editorCanvas = document.getElementById('editorCanvas');
+editorCanvas.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - imgX; startY = e.clientY - imgY; });
+editorCanvas.addEventListener('mousemove', (e) => { if (!isDragging) return; imgX = e.clientX - startX; imgY = e.clientY - startY; updateImageTransform(); });
+editorCanvas.addEventListener('mouseup', () => isDragging = false);
+editorCanvas.addEventListener('mouseleave', () => isDragging = false);
+editorCanvas.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { isDragging = true; startX = e.touches[0].clientX - imgX; startY = e.touches[0].clientY - imgY; } }, {passive: true});
+editorCanvas.addEventListener('touchmove', (e) => { if (isDragging && e.touches.length === 1) { imgX = e.touches[0].clientX - startX; imgY = e.touches[0].clientY - startY; updateImageTransform(); } }, {passive: true});
+editorCanvas.addEventListener('touchend', () => isDragging = false);
+
+async function saveEditedImage() {
+  if (!isViewingMyProfile) return;
+  const img = new Image();
+  img.onload = async function() {
+    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+    canvas.width = img.width; canvas.height = img.height; ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const editedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+    
+    let updateData = {};
+    if (currentEditingType === 'user') { 
+      updateData.userImg = editedBase64;
+    } else if (currentEditingType === 'vehicle') {
+      let newImages = currentUser.vehicleImages || [];
+      if (editingImageIndex === -2) {
+        newImages.push(editedBase64);
+        updateData.vehicleImages = newImages;
+        if (newImages.length === 1) updateData.mainVehicleImgIndex = 0;
+      } else {
+        newImages[editingImageIndex] = editedBase64;
+        updateData.vehicleImages = newImages;
+      }
+    }
+    
+    await db.collection("users").doc(currentUser.id).update(updateData);
+    Object.assign(currentUser, updateData);
+    
+    closeEditor(); loadProfileData(currentUser); alert('تم حفظ الصورة بنجاح!');
+  };
+  img.src = document.getElementById('editorImage').src;
+}
+
+async function setMainAndClose() {
+  if (!isViewingMyProfile) return;
+  if (editingImageIndex >= 0) {
+    await db.collection("users").doc(currentUser.id).update({ mainVehicleImgIndex: editingImageIndex });
+    currentUser.mainVehicleImgIndex = editingImageIndex;
+  }
+  closeEditor(); loadProfileData(currentUser); alert('تم تعيين الصورة كرئيسية!');
+}
+
+async function deleteFromEditor() {
+  if (!isViewingMyProfile) return;
+  if (!confirm('هل أنت متأكد من حذف هذه الصورة؟')) return;
+  
+  let updateData = {};
+  if (currentEditingType === 'user') { 
+    updateData.userImg = ''; 
+  } else if (currentEditingType === 'vehicle' && editingImageIndex >= 0) {
+    let newImages = currentUser.vehicleImages;
+    newImages.splice(editingImageIndex, 1);
+    updateData.vehicleImages = newImages;
+    if (currentUser.mainVehicleImgIndex === editingImageIndex) updateData.mainVehicleImgIndex = 0;
+    else if (currentUser.mainVehicleImgIndex > editingImageIndex) updateData.mainVehicleImgIndex = currentUser.mainVehicleImgIndex - 1;
+  }
+  
+  await db.collection("users").doc(currentUser.id).update(updateData);
+  Object.assign(currentUser, updateData);
+  
+  closeEditor(); loadProfileData(currentUser);
+}
+
+function showHelpScreen() {
+  document.getElementById('passengerView').classList.add('hidden'); 
+  document.getElementById('driverView').classList.add('hidden');
+  document.getElementById('optionsView').classList.add('hidden'); 
+  document.getElementById('resultsView').classList.add('hidden');
+  document.getElementById('helpView').classList.remove('hidden'); 
+  document.getElementById('helpMessage').value = ''; 
+  hideError('helpOk');
+}
+
+async function sendHelpRequest() {
+  const msg = document.getElementById('helpMessage').value.trim(); 
+  if (!msg) return alert('اكتب رسالتك أولاً');
+  
+  await db.collection("sos").add({
+    senderId: currentUser.id,
+    senderName: currentUser.name,
+    senderPhone: currentUser.phone,
+    message: msg,
+    time: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  
+  document.getElementById('helpOk').textContent = '✅ تم إرسال النداء لجميع السائقين!';
+  document.getElementById('helpOk').style.display = 'block';
+  document.getElementById('helpMessage').value = ''; 
+  setTimeout(() => loadHome(), 2000);
+}
+
+function loadSOSAlerts() {
+  db.collection("sos")
+    .orderBy("time", "desc")
+    .onSnapshot(snapshot => {
+      const list = document.getElementById('sosList'); 
+      if (!list) return;
+      
+      const requests = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(r => r.senderId !== currentUser.id);
+        
+      if (requests.length > lastSosCount) playBBMSound();
+      lastSosCount = requests.length;
+
+      if (requests.length === 0) { 
+        list.innerHTML = '<p style="text-align:center;color:#999;font-size:13px">لا توجد نداءات حالياً</p>'; 
+        return; 
+      }
+      
+      list.innerHTML = '';
+      requests.forEach(req => {
+        const card = document.createElement('div'); card.className = 'sos-card';
+        card.innerHTML = `
+          <div class="info">
+            <h4>🚨 ${req.senderName} (${req.senderPhone})</h4>
+            <p>${req.message}</p>
+          </div>
+          <div class="btn-group">
+            <button class="btn-reply" onclick="openChat('${req.senderId}','${req.senderName.replace(/'/g,'')}','${req.senderPhone}')">رد ومساعدة</button>
+            <button class="btn-resolve" onclick="resolveSOS('${req.id}')">تم المساعدة</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    });
+}
+
+async function resolveSOS(requestId) {
+  if (!confirm('هل أنت متأكد أنك قمت بمساعدة هذا الشخص؟ سيتم إيقاف التنبيه وحذف النداء من الجميع.')) return;
+  await db.collection("sos").doc(requestId).delete();
+}
+
+async function showOnlineDriversOnHome() {
+  const box = document.getElementById('onlineDriversList'); 
+  box.innerHTML = '<div class="spinner"></div>';
+  
+  const snapshot = await db.collection("users")
+    .where("isDriver", "==", true)
+    .where("isAvailable", "==", true)
+    .get();
+    
+  box.innerHTML = '';
+  if (snapshot.empty) { 
+    box.innerHTML = '<p style="text-align:center;color:#999;padding:14px">لا يوجد سائقون متاحون الآن</p>'; 
+    return; 
+  }
+  
+  const labels = { motorcycle:'🏍️ دراجة', bus:'🚌 باص دايو', truck:'🚚 دينه نقل بضائع او عفش', trailer:'🚛 قاطرة' };
+  snapshot.forEach(doc => {
+    const driver = doc.data();
+    if (driver.id === currentUser.id) return;
+    const card = document.createElement('div'); card.className = 'driver-card';
+    card.innerHTML = `
+      <div class="info" onclick="openDriverProfile('${driver.id}')">
+        <h4>👤 ${driver.name} (عرض الملف)</h4>
+        <p>${labels[driver.accountType]} - 🟢 متاح</p>
+      </div>
+      <button onclick="openChat('${driver.id}','${driver.name.replace(/'/g,'')}','${driver.phone}')">💬 محادثة</button>
+    `;
+    box.appendChild(card);
+  });
+}
+
+async function findDrivers(vehicleType) {
+  document.getElementById('optionsView').classList.add('hidden'); 
+  document.getElementById('resultsView').classList.remove('hidden');
+  const list = document.getElementById('driversList');
+  list.innerHTML = '<div class="spinner"></div><p style="text-align:center;color:#666">جاري البحث...</p>';
+  
+  const snapshot = await db.collection("users")
+    .where("accountType", "==", vehicleType)
+    .where("isAvailable", "==", true)
+    .get();
+    
+  if (snapshot.empty) { 
+    list.innerHTML = '<p style="text-align:center;color:#e74c3c;margin:20px 0">لا يوجد سائق متاح حالياً لهذا النوع 😔</p>'; 
+    return; 
+  }
+  
+  list.innerHTML = '';
+  snapshot.forEach(doc => {
+    const driver = doc.data();
+    if (driver.id === currentUser.id) return;
+    const card = document.createElement('div'); card.className = 'driver-card';
+    card.innerHTML = `
+      <div class="info" onclick="openDriverProfile('${driver.id}')">
+        <h4>👤 ${driver.name} (عرض الملف)</h4>
+        <p>📍 متاح الآن</p>
+      </div>
+      <button onclick="openChat('${driver.id}','${driver.name.replace(/'/g,'')}','${driver.phone}')">💬 محادثة</button>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function updateAvailabilityUI(isAvail) {
+  document.getElementById('availText').textContent = isAvail ? '🟢 أنت متاح لاستقبال الطلبات' : '🔴 أنت غير متاح حالياً';
+  const btn = document.getElementById('toggleBtn');
+  btn.textContent = isAvail ? 'إيقاف الاستقبال' : 'تشغيل الاستقبال';
+  btn.style.background = isAvail ? 'linear-gradient(135deg,#e74c3c,#c0392b)' : 'linear-gradient(135deg,#27ae60,#2ecc71)';
+}
+
+async function toggleAvailability() {
+  const newState = !currentUser.isAvailable;
+  await db.collection("users").doc(currentUser.id).update({ isAvailable: newState });
+  currentUser.isAvailable = newState;
+  updateAvailabilityUI(newState);
+}
+
+async function loadInbox() {
+  const inbox = document.getElementById('inboxList'); 
+  if (!inbox) return;
+  inbox.innerHTML = '<p style="text-align:center;color:#999;font-size:13px">جاري التحديث...</p>';
+  
+  try {
+    const snapshot = await db.collection("all_messages").orderBy("time", "desc").get();
+    
+    let inboxHTML = '';
+    let processedSenders = new Set();
+    let newMessagesCount = 0;
+    
+    snapshot.forEach(doc => {
+      const msg = doc.data();
+      
+      if (msg.receiverId === currentUser.id && !processedSenders.has(msg.senderId)) {
+        processedSenders.add(msg.senderId);
+        newMessagesCount++;
+        
+        db.collection("users").doc(msg.senderId).get().then(userSnap => {
+          if(userSnap.exists) {
+            const sender = userSnap.data();
+            inboxHTML += `
+              <div class="driver-card" onclick="openChat('${sender.id}','${sender.name}','${sender.phone}')">
+                <div class="info">
+                  <h4>👤 ${sender.name}</h4>
+                  <p style="font-size:12px;color:#555">💬 ${msg.text.substring(0, 20)}...</p>
+                </div>
+                <button>فتح</button>
+              </div>
+            `;
+            inbox.innerHTML = inboxHTML;
+          }
+        });
+      }
+    });
+    
+    if (newMessagesCount > lastInboxCount && lastInboxCount !== 0) {
+       playBBMSound(); // تشغيل الصوت هنا
+    }
+    lastInboxCount = newMessagesCount;
+
+    setTimeout(() => {
+      if (inboxHTML === '') {
+        inbox.innerHTML = '<p style="text-align:center;color:#999;font-size:13px">لا توجد رسائل واردة</p>';
+      }
+    }, 1500);
+
+  } catch(e) {
+    console.error(e);
+    inbox.innerHTML = '<p style="text-align:center;color:#e74c3c;font-size:13px">خطأ في التحديث</p>';
+  }
+}
+
+function openChat(otherUserId, otherUserName, otherUserPhone) {
+  if (!currentUser) return;
+  chatOtherId = otherUserId; 
+  chatOtherPhone = otherUserPhone;
+  chatReturnScreen = 'homeScreen';
+  document.getElementById('chatTitle').textContent = otherUserName;
+  show('chatScreen');
+  
+  loadChatMessages();
+  
+  if (chatInterval) clearInterval(chatInterval);
+  chatInterval = setInterval(loadChatMessages, 3000);
+}
+
+function loadChatMessages() {
+  if (!chatOtherId) return; 
+  
+  db.collection("all_messages")
+    .orderBy("time", "asc")
+    .get()
+    .then(snapshot => {
+      const box = document.getElementById('messages');
+      let currentMsgCount = box.children.length;
+      box.innerHTML = '';
+      
+      let hasMessages = false;
+      let newMsgs = 0;
+
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        
+        if ((m.senderId === currentUser.id && m.receiverId === chatOtherId) || 
+            (m.senderId === chatOtherId && m.receiverId === currentUser.id)) {
+          
+          hasMessages = true;
+          newMsgs++;
+          const div = document.createElement('div');
+          div.className = 'message ' + (m.senderId === currentUser.id ? 'mine' : 'theirs');
+          div.textContent = m.text;
+          box.appendChild(div);
+        }
+      });
+      
+      if (newMsgs > currentMsgCount && currentMsgCount !== 0) {
+         playBBMSound(); // تشغيل الصوت داخل المحادثة
+      }
+
+      if (!hasMessages) { 
+        box.innerHTML = '<p style="text-align:center;color:#999;font-size:13px">ابدأ المحادثة...</p>'; 
+      }
+      
+      box.scrollTop = box.scrollHeight;
+    });
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msgInput'); 
+  const text = input.value.trim();
+  if (!text || !currentUser || !chatOtherId) return;
+  input.value = '';
+  
+  await db.collection("all_messages").add({
+    senderId: currentUser.id, 
+    receiverId: chatOtherId, 
+    text: text, 
+    time: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  
+  loadChatMessages();
+}
+
+function backFromChat() { 
+  if (chatInterval) clearInterval(chatInterval);
+  show(chatReturnScreen); 
+  loadHome(); 
+}
+
+function chatFromProfile() { 
+  const driverId = viewingUserId;
+  const driverName = document.getElementById('profileUserName').textContent;
+  openChat(driverId, driverName); 
+}
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    db.collection("users").doc(user.uid).get().then(doc => {
+      if (doc.exists) {
+        currentUser = doc.data();
+        loadHome();
+      } else {
+        show('welcomeScreen');
+      }
+    }).catch((error) => {
+      show('welcomeScreen');
+    });
+  } else {
+    show('welcomeScreen');
+  }
+});
+</script>
+</body>
+</html>
